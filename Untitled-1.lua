@@ -16,24 +16,15 @@ local OrionLib = {
 	Flags = {},
 	Themes = {
 		Default = {
-			Main = Color3.fromRGB(25, 25, 25),
-			Second = Color3.fromRGB(32, 32, 32),
-			Stroke = Color3.fromRGB(60, 60, 60),
-			Divider = Color3.fromRGB(60, 60, 60),
-			Text = Color3.fromRGB(240, 240, 240),
-			TextDark = Color3.fromRGB(150, 150, 150)
-		},
-
-		Bliz_T = {
-			Main = Color3.fromRGB(0, 0, 0), -- Preto para o fundo
-			Second = Color3.fromRGB(20, 20, 20), -- Cinza bem escuro para contraste
-			Stroke = Color3.fromRGB(100, 150, 255), -- Azul bebê claro para detalhes
-			Divider = Color3.fromRGB(80, 120, 200), -- Azul bebê mais escuro para divisores
-			Text = Color3.fromRGB(180, 220, 255), -- Azul bebê claro para textos
-			TextDark = Color3.fromRGB(150, 180, 230) -- Azul bebê amarelado para texto secundário
+			Main = Color3.fromRGB(12, 12, 14),
+			Second = Color3.fromRGB(18, 18, 22),
+			Stroke = Color3.fromRGB(72, 72, 88),
+			Divider = Color3.fromRGB(42, 42, 48),
+			Text = Color3.fromRGB(230, 230, 235),
+			TextDark = Color3.fromRGB(150, 150, 170)
 		}
 	},
-	SelectedTheme = "Bliz_T",
+	SelectedTheme = "Default",
 	Folder = nil,
 	SaveCfg = false
 }
@@ -342,7 +333,7 @@ end)
 
 CreateElement("Stroke", function(Color, Thickness)
 	local Stroke = Create("UIStroke", {
-		Color = Color or Color3.fromRGB(255, 255, 255),
+		Color = Color or OrionLib.Themes[OrionLib.SelectedTheme].Stroke,
 		Thickness = Thickness or 1
 	})
 	return Stroke
@@ -375,7 +366,7 @@ end)
 
 CreateElement("Frame", function(Color)
 	local Frame = Create("Frame", {
-		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
+		BackgroundColor3 = Color or OrionLib.Themes[OrionLib.SelectedTheme].Second,
 		BorderSizePixel = 0
 	})
 	return Frame
@@ -383,7 +374,7 @@ end)
 
 CreateElement("RoundFrame", function(Color, Scale, Offset)
 	local Frame = Create("Frame", {
-		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
+		BackgroundColor3 = Color or OrionLib.Themes[OrionLib.SelectedTheme].Second,
 		BorderSizePixel = 0
 	}, {
 		Create("UICorner", {
@@ -441,7 +432,7 @@ end)
 CreateElement("Label", function(Text, TextSize, Transparency)
 	local Label = Create("TextLabel", {
 		Text = Text or "",
-		TextColor3 = Color3.fromRGB(240, 240, 240),
+		TextColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Text,
 		TextTransparency = Transparency or 0,
 		TextSize = TextSize or 15,
 		Font = Enum.Font.Gotham,
@@ -1639,22 +1630,12 @@ function OrionLib:MakeWindow(WindowConfig)
 					Dropdown.Value = "..."
 				end
 
+				local SelectedValues = {}
+				local Options = 0
+
 				local DropdownList = MakeElement("List")
 
-				local SearchBox = AddThemeObject(Create("TextBox", {
-					Size = UDim2.new(1, 0, 0, 30),
-					BackgroundTransparency = 0.5,
-					TextColor3 = Color3.fromRGB(255, 255, 255),
-					PlaceholderColor3 = Color3.fromRGB(210,210,210),
-					PlaceholderText = "🔍 Pesquisar jogadores...",
-					Font = Enum.Font.GothamSemibold,
-					Text = '',
-					TextSize = 14,
-					ClearTextOnFocus = false
-				}), "Main")
-
 				local DropdownContainer = AddThemeObject(SetProps(SetChildren(MakeElement("ScrollFrame", Color3.fromRGB(40, 40, 40), 4), {
-					SearchBox,
 					DropdownList
 				}), {
 					Parent = ItemParent,
@@ -1710,10 +1691,10 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 
 				AddConnection(DropdownList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-					DropdownContainer.CanvasSize = UDim2.new(0, 0, 0, DropdownList.AbsoluteContentSize.Y + 35)
+					DropdownContainer.CanvasSize = UDim2.new(0, 0, 0, DropdownList.AbsoluteContentSize.Y)
 
 					if Options <= MaxElements then
-						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + 35 + (Options * 45)) or UDim2.new(1, 0, 0, 38)}):Play()
+						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + (Options * 45)) or UDim2.new(1, 0, 0, 38)}):Play()
 					end
 				end)
 
@@ -1783,14 +1764,6 @@ function OrionLib:MakeWindow(WindowConfig)
 						end)
 
 						Dropdown.Buttons[Option] = OptionBtn
-
-						local searchText = string.lower(SearchBox.Text or "")
-						if string.find(string.lower(Option), searchText) then
-							OptionBtn.Visible = true
-						else
-							OptionBtn.Visible = false
-						end
-
 						Options = Options + 1
 					else
 						local n = table.find(SelectedValues, Option)
@@ -1816,17 +1789,6 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				PlayerService.PlayerRemoving:Connect(function(p) 
 					RemoveOption(p.Name)
-				end)
-
-				AddConnection(SearchBox:GetPropertyChangedSignal("Text"), function()
-					local searchText = string.lower(SearchBox.Text)
-					for playerName, button in pairs(Dropdown.Buttons) do
-						if string.find(string.lower(playerName), searchText) then
-							button.Visible = true
-						else
-							button.Visible = false
-						end
-					end
 				end)
 
 				local function DeleteAllDisconnectedPlayers()
@@ -1967,9 +1929,9 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(DropdownFrame.F.Ico,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Rotation = Dropdown.Toggled and 180 or 0}):Play()
 
 					if Options > MaxElements then
-						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + 35 + (MaxElements * 45)) or UDim2.new(1, 0, 0, 38)}):Play()
+						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + (MaxElements * 45)) or UDim2.new(1, 0, 0, 38)}):Play()
 					else
-						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + 35 + (Options * 45)) or UDim2.new(1, 0, 0, 38)}):Play()
+						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + (Options * 45)) or UDim2.new(1, 0, 0, 38)}):Play()
 					end
 					
 				end)

@@ -2498,7 +2498,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				end)
 
-				--[[
+				
 
 				AddConnection(Color.InputBegan, function(input)
 					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -2548,7 +2548,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						end
 					end
 				end)
-				]]--
+				
 
 				function Colorpicker:Set(Value)
 					Colorpicker.Value = Value

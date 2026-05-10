@@ -16,18 +16,113 @@ local OrionLib = {
 	Flags = {},
 	Themes = {
 		Default = {
-			Main = Color3.fromRGB(12, 12, 14),
-			Second = Color3.fromRGB(18, 18, 22),
-			Stroke = Color3.fromRGB(72, 72, 88),
-			Divider = Color3.fromRGB(42, 42, 48),
-			Text = Color3.fromRGB(230, 230, 235),
-			TextDark = Color3.fromRGB(150, 150, 170)
+			Main = Color3.fromRGB(25, 25, 30),
+			Second = Color3.fromRGB(35, 35, 40),
+			Accent = Color3.fromRGB(255, 255, 255),
+			ElementAccent = Color3.fromRGB(0, 160, 255),
+			GradientStart = Color3.fromRGB(255, 255, 255),
+			GradientEnd = Color3.fromRGB(200, 200, 200),
+			Text = Color3.fromRGB(255, 255, 255),
+			TextDark = Color3.fromRGB(170, 170, 170),
+			Error = Color3.fromRGB(255, 60, 60),
+			Transparency = 0.25,
+			ImageTransparency = 0,
+			OrbsTransparency = 0.90,
+			Font = "Gotham",
+			Background = "",
+			Stroke = Color3.fromRGB(60, 60, 60), -- Added for compatibility
+			Divider = Color3.fromRGB(60, 60, 60)
+		},
+		Blood = {
+			Main = Color3.fromRGB(20, 15, 15),
+			Second = Color3.fromRGB(30, 20, 20),
+			Accent = Color3.fromRGB(220, 40, 40),
+			ElementAccent = Color3.fromRGB(220, 40, 40),
+			GradientStart = Color3.fromRGB(255, 0, 0),
+			GradientEnd = Color3.fromRGB(150, 0, 0),
+			Text = Color3.fromRGB(255, 240, 240),
+			TextDark = Color3.fromRGB(170, 120, 120),
+			Error = Color3.fromRGB(255, 0, 0),
+			Transparency = 0.25,
+			ImageTransparency = 0,
+			OrbsTransparency = 0.90,
+			Font = "Gotham",
+			Background = "",
+			Stroke = Color3.fromRGB(100, 0, 0),
+			Divider = Color3.fromRGB(100, 0, 0)
+		},
+		Purple = {
+			Main = Color3.fromRGB(20, 15, 25),
+			Second = Color3.fromRGB(30, 25, 40),
+			Accent = Color3.fromRGB(160, 80, 255),
+			ElementAccent = Color3.fromRGB(160, 80, 255),
+			GradientStart = Color3.fromRGB(140, 0, 255),
+			GradientEnd = Color3.fromRGB(255, 0, 255),
+			Text = Color3.fromRGB(240, 230, 255),
+			TextDark = Color3.fromRGB(160, 140, 190),
+			Error = Color3.fromRGB(255, 0, 100),
+			Transparency = 0.25,
+			ImageTransparency = 0,
+			OrbsTransparency = 0.90,
+			Font = "Gotham",
+			Background = "",
+			Stroke = Color3.fromRGB(100, 50, 150),
+			Divider = Color3.fromRGB(100, 50, 150)
 		}
 	},
 	SelectedTheme = "Default",
 	Folder = nil,
 	SaveCfg = false
 }
+
+-- Utility functions from SolarisUI
+local function Create(class, properties)
+	local instance = Instance.new(class)
+	for k, v in pairs(properties) do
+		instance[k] = v
+	end
+	return instance
+end
+
+local function AddCorner(instance, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius or 10)
+	corner.Parent = instance
+	return corner
+end
+
+local function AddStroke(instance, color)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color or OrionLib.Themes[OrionLib.SelectedTheme].Accent
+	stroke.Thickness = 1.2
+	stroke.Transparency = 0.5
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = instance
+	return stroke
+end
+
+local function CreateRipple(btn, color)
+	btn.ClipsDescendants = true
+	btn.MouseButton1Click:Connect(function()
+		local ripple = Create("ImageLabel", {
+			Name = "Ripple",
+			Parent = btn,
+			Image = "rbxassetid://4743389506",
+			ImageColor3 = color or OrionLib.Themes[OrionLib.SelectedTheme].Accent,
+			BackgroundTransparency = 1,
+			ImageTransparency = 0.5,
+			Position = UDim2.new(0, Mouse.X - btn.AbsolutePosition.X, 0, Mouse.Y - btn.AbsolutePosition.Y),
+			Size = UDim2.new(0, 0, 0, 0),
+			ZIndex = 20,
+			AnchorPoint = Vector2.new(0.5, 0.5)
+		})
+		local tween = TweenService:Create(ripple, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 500, 0, 500), ImageTransparency = 1})
+		tween:Play()
+		tween.Completed:Connect(function()
+			ripple:Destroy()
+		end)
+	end)
+end
 
 --Feather Icons https://github.com/evoincorp/lucideblox/tree/master/src/modules/util - Created by 7kayoh
 local Icons = {}
@@ -333,7 +428,7 @@ end)
 
 CreateElement("Stroke", function(Color, Thickness)
 	local Stroke = Create("UIStroke", {
-		Color = Color or OrionLib.Themes[OrionLib.SelectedTheme].Stroke,
+		Color = Color or Color3.fromRGB(255, 255, 255),
 		Thickness = Thickness or 1
 	})
 	return Stroke
@@ -366,20 +461,24 @@ end)
 
 CreateElement("Frame", function(Color)
 	local Frame = Create("Frame", {
-		BackgroundColor3 = Color or OrionLib.Themes[OrionLib.SelectedTheme].Second,
+		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0
+	}, {
+		AddCorner(nil, 8),
+		AddStroke(nil, OrionLib.Themes[OrionLib.SelectedTheme].Accent)
 	})
 	return Frame
 end)
 
 CreateElement("RoundFrame", function(Color, Scale, Offset)
 	local Frame = Create("Frame", {
-		BackgroundColor3 = Color or OrionLib.Themes[OrionLib.SelectedTheme].Second,
+		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0
 	}, {
 		Create("UICorner", {
 			CornerRadius = UDim.new(Scale, Offset)
-		})
+		}),
+		AddStroke(nil, OrionLib.Themes[OrionLib.SelectedTheme].Accent)
 	})
 	return Frame
 end)
@@ -391,6 +490,7 @@ CreateElement("Button", function()
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0
 	})
+	CreateRipple(Button)
 	return Button
 end)
 
@@ -432,7 +532,7 @@ end)
 CreateElement("Label", function(Text, TextSize, Transparency)
 	local Label = Create("TextLabel", {
 		Text = Text or "",
-		TextColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Text,
+		TextColor3 = Color3.fromRGB(240, 240, 240),
 		TextTransparency = Transparency or 0,
 		TextSize = TextSize or 15,
 		Font = Enum.Font.Gotham,
@@ -2498,7 +2598,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				end)
 
-				
+				--[[
 
 				AddConnection(Color.InputBegan, function(input)
 					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -2548,7 +2648,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						end
 					end
 				end)
-				
+				]]--
 
 				function Colorpicker:Set(Value)
 					Colorpicker.Value = Value
@@ -2654,5 +2754,9 @@ function OrionLib:Destroy()
     Orion:Destroy()
 end
 
+function OrionLib:ChangeTheme(ThemeName)
+    OrionLib.SelectedTheme = ThemeName
+    SetTheme()
+end
 
 return OrionLib

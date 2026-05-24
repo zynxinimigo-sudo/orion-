@@ -1,4 +1,4 @@
--- TIRAAA TIRAAA VE 2
+-- AAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 local Library = {}
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
@@ -311,6 +311,9 @@ local function GetAssetId(id)
     end
     local str = tostring(id)
     if str:find("rbxasset://") or str:find("rbxthumb://") or str:find("rbxassetid://") then
+        return str
+    end
+    if str:find("^https?://") then
         return str
     end
     local num = str:match("%d+")
@@ -1491,7 +1494,7 @@ function Library:CreateWindow(Settings)
         Parent = Main,
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
-        ImageTransparency = ImageTrans,
+        ImageTransparency = 0,
         ScaleType = Enum.ScaleType.Crop,
         ZIndex = 1
     })

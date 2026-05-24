@@ -1,4 +1,4 @@
---TIRAA TIRAAA
+-- TIRAAA TIRAAA VE 2
 local Library = {}
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
@@ -311,9 +311,6 @@ local function GetAssetId(id)
     end
     local str = tostring(id)
     if str:find("rbxasset://") or str:find("rbxthumb://") or str:find("rbxassetid://") then
-        return str
-    end
-    if str:find("^https?://") then
         return str
     end
     local num = str:match("%d+")

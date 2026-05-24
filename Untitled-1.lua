@@ -1714,7 +1714,7 @@ function Library:CreateWindow(Settings)
         Position = UDim2.new(0, 195, 0, 60),
         BackgroundTransparency = 1,
         ZIndex = 5,
-        ClipsDescendants = false
+        ClipsDescendants = true
     })
 
     local IsOpen, LastSize = true, WindowSize
@@ -3180,372 +3180,308 @@ function Library:CreateWindow(Settings)
 
             function Elements:CreatePlayerDropdown(Cfg)
                 ElementOrder = ElementOrder + 1
-                local Flag        = Cfg.Flag or Cfg.Name
-                local MaxSelect   = Cfg.Max or math.huge
-                local Expanded    = false
-
-            -- selected: { [userId] = Player|{Name=string, Disconnected=true} }
-                local Selected    = {}
-            -- store para jogadores que saíram: { [userId] = {Name, DisplayName} }
-                local Disconnected = {}
+                local Flag = Cfg.Flag or Cfg.Name
+                local MaxSelect = Cfg.Max or math.huge
+                local Expanded = false
+                local Selected = {}   -- [userId] = Player | {Name, Disconnected=true}
+                local Disconnected = {} -- [userId] = {Name=string}  (só selecionados que saíram)
 
                 Library.Flags[Flag] = {}
 
-            -- ───────── Container principal ─────────
                 local Drop = Create("TextButton", {
-                    Parent              = TargetParent,
-                    Size                = UDim2.new(1, 0, 0, 34),
-                    BackgroundColor3    = SelectedTheme.Second,
+                    Parent = TargetParent,
+                    Size = UDim2.new(1, 0, 0, 34),
+                    BackgroundColor3 = SelectedTheme.Second,
                     BackgroundTransparency = 0.5,
-                    Text                = "",
-                    AutoButtonColor     = false,
-                    ClipsDescendants    = true,
-                    ZIndex              = 100,
-                    LayoutOrder         = ElementOrder,
-                    ThemeTag            = "Second",
+                    Text = "",
+                    AutoButtonColor = false,
+                    ClipsDescendants = true,
+                    ZIndex = 7,
+                    LayoutOrder = ElementOrder,
+                    ThemeTag = "Second"
                 })
                 AddCorner(Drop, 8)
                 AddStroke(Drop, SelectedTheme).Transparency = 0.8
                 DefaultHover(Drop)
 
-            -- ───────── Título / preview ─────────
-                local TitleLabel = Create("TextLabel", {
-                    Parent              = Drop,
-                    Size                = UDim2.new(1, -40, 0, 34),
-                    Position            = UDim2.new(0, 12, 0, 0),
+                local Title = Create("TextLabel", {
+                    Parent = Drop,
+                    Size = UDim2.new(1, -40, 0, 34),
+                    Position = UDim2.new(0, 12, 0, 0),
                     BackgroundTransparency = 1,
-                    Text                = Cfg.Name or "Players",
-                    Font                = Library.GlobalFont,
-                    TextColor3          = SelectedTheme.Text,
-                    TextSize            = 14,
-                    TextXAlignment      = Enum.TextXAlignment.Left,
-                    ZIndex              = 8,
-                    TextTruncate        = Enum.TextTruncate.AtEnd,
-                    ThemeTag            = "Text",
+                    Text = Cfg.Name or "Players",
+                    Font = Library.GlobalFont,
+                    TextColor3 = SelectedTheme.Text,
+                    TextSize = 14,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 8,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ThemeTag = "Text"
                 })
 
                 local Arrow = Create("ImageLabel", {
-                    Parent              = Drop,
-                    Size                = UDim2.new(0, 16, 0, 16),
-                    Position            = UDim2.new(1, -28, 0, 9),
+                    Parent = Drop,
+                    Size = UDim2.new(0, 16, 0, 16),
+                    Position = UDim2.new(1, -28, 0, 9),
                     BackgroundTransparency = 1,
-                    Image               = "rbxassetid://6031091004",
-                    ImageColor3         = SelectedTheme.TextDark,
-                    ZIndex              = 8,
+                    Image = "rbxassetid://6031091004",
+                    ImageColor3 = SelectedTheme.TextDark,
+                    ZIndex = 8
                 })
                 table.insert(Library.ThemeObjects.TextDark, Arrow)
 
-            -- ───────── Scroll interno ─────────
                 local Container = Create("ScrollingFrame", {
-                    Parent              = Drop,
-                    Size                = UDim2.new(1, 0, 0, 0),
-                    Position            = UDim2.new(0, 0, 0, 34),
+                    Parent = Drop,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    Position = UDim2.new(0, 0, 0, 34),
                     BackgroundTransparency = 1,
-                    ZIndex              = 8,
-                    ScrollBarThickness  = 2,
+                    ZIndex = 8,
+                    ScrollBarThickness = 2,
                     ScrollBarImageColor3 = SelectedTheme.TextDark,
-                    BorderSizePixel     = 0,
-                    CanvasSize          = UDim2.new(0, 0, 0, 0),
+                    BorderSizePixel = 0,
+                    CanvasSize = UDim2.new(0, 0, 0, 0)
                 })
 
                 Create("UIPadding", {
-                    Parent       = Container,
-                    PaddingTop   = UDim.new(0, 5),
+                    Parent = Container,
+                    PaddingTop = UDim.new(0, 5),
                     PaddingBottom = UDim.new(0, 5),
-                    PaddingLeft  = UDim.new(0, 10),
-                    PaddingRight = UDim.new(0, 10),
+                    PaddingLeft = UDim.new(0, 10),
+                    PaddingRight = UDim.new(0, 10)
                 })
 
-                local ListLayout = Create("UIListLayout", {
-                    Parent  = Container,
-                    Padding = UDim.new(0, 4),
-                })
+                Create("UIListLayout", { Parent = Container, Padding = UDim.new(0, 4) })
 
-            -- ─────────────────────────────────────────
-            --  Helpers
-            -- ─────────────────────────────────────────
-                local rowObjects = {}  -- { [userId] = {Btn, CheckMark, NameLabel} }
-
+                -- helpers
                 local function GetSelectedPlayers()
-            -- retorna só os Players que ainda estão no jogo
-                    local live = {}
+                    local t = {}
                     for uid, v in pairs(Selected) do
                         if typeof(v) == "Instance" and v:IsA("Player") then
-                            table.insert(live, v)
+                            table.insert(t, v)
                         end
                     end
-                    return live
+                    return t
                 end
 
                 local function UpdateTitle()
-                    local count = 0
                     local names = {}
                     for uid, v in pairs(Selected) do
-                        count = count + 1
-                        if typeof(v) == "Instance" and v:IsA("Player") then
-                            table.insert(names, v.DisplayName)
-                        else
-                            table.insert(names, v.Name .. " ✗")
-                        end
+                        local name = typeof(v) == "Instance" and v.DisplayName or v.Name
+                        table.insert(names, name)
                     end
-                    if count == 0 then
-                        TitleLabel.Text = Cfg.Name or "Players"
+                    if #names == 0 then
+                        Title.Text = Cfg.Name or "Players"
                     else
-                        local joined = table.concat(names, ", ")
-                        TitleLabel.Text = (Cfg.Name or "Players") .. " - " .. joined
+                        Title.Text = (Cfg.Name or "Players") .. " - " .. table.concat(names, ", ")
                     end
                     Library.Flags[Flag] = GetSelectedPlayers()
-                    if Cfg.Callback then
-                        Cfg.Callback(GetSelectedPlayers())
-                    end
+                    if Cfg.Callback then Cfg.Callback(GetSelectedPlayers()) end
                 end
 
-                local function SetRowColor(userId, row)
-                    local btn       = row.Btn
-                    local nameLabel = row.NameLabel
-                    local check     = row.CheckMark
-                    local isSelected = Selected[userId] ~= nil
-                    local isDisco    = Disconnected[userId] ~= nil
-
-                    if isDisco then
-            -- vermelho para desconectados selecionados
-                        TS:Create(nameLabel, TweenInfo.new(0.25), {
-                            TextColor3 = isSelected and Color3.fromRGB(255, 80, 80) or SelectedTheme.TextDark
-                        }):Play()
-                    else
-                        TS:Create(nameLabel, TweenInfo.new(0.25), {
-                            TextColor3 = isSelected and SelectedTheme.Text or SelectedTheme.TextDark
-                        }):Play()
-                    end
-
-                    TS:Create(btn, TweenInfo.new(0.25), {
-                        BackgroundTransparency = isSelected and 0.2 or 0.8
-                    }):Play()
-
-                    check.Visible = isSelected
-                end
-
-                local function TogglePlayer(userId, playerOrInfo)
-                    if Selected[userId] then
-                        Selected[userId] = nil
-                        Disconnected[userId] = nil
-                        Rebuild()
-                    else
-            -- checar limite
-                        local count = 0
-                        for _ in pairs(Selected) do count = count + 1 end
-                        if count >= MaxSelect then return end
-                        Selected[userId] = playerOrInfo
-                    end
-
-                    if rowObjects[userId] then
-                        SetRowColor(userId, rowObjects[userId])
-                    end
-                    UpdateTitle()
-                end
-
-            -- ─────────────────────────────────────────
-            --  Cria linha de jogador
-            -- ─────────────────────────────────────────
-                local function CreateRow(plr, isDisconnected)
-                    local userId = plr.UserId
-                    local displayName = isDisconnected
-                        and (Disconnected[userId] and Disconnected[userId].Name or plr.Name)
-                        or plr.DisplayName
-
-            -- avatar thumb
-                    local thumb = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-                    if not isDisconnected then
-                        pcall(function()
-                            thumb = Plrs:GetUserThumbnailAsync(
-                                userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
-                        end)
-                    end
-
-                    local isSelected = Selected[userId] ~= nil
-
-                    local Btn = Create("TextButton", {
-                        Parent              = Container,
-                        Size                = UDim2.new(1, 0, 0, 32),
-                        BackgroundColor3    = SelectedTheme.Main,
-                        BackgroundTransparency = isSelected and 0.2 or 0.8,
-                        Text                = "",
-                        AutoButtonColor     = false,
-                        ZIndex              = 9,
-                        ThemeTag            = "Main",
-                    })
-                    AddCorner(Btn, 6)
-
-            -- avatar
-                    local Avatar = Create("ImageLabel", {
-                        Parent              = Btn,
-                        Size                = UDim2.new(0, 22, 0, 22),
-                        Position            = UDim2.new(0, 6, 0.5, -11),
-                        BackgroundTransparency = 1,
-                        Image               = thumb,
-                        ZIndex              = 10,
-                    })
-                    AddCorner(Avatar, 100)
-
-            -- nome
-                    local textColor
-                    if isDisconnected then
-                        textColor = isSelected and Color3.fromRGB(255, 80, 80) or SelectedTheme.TextDark
-                    else
-                        textColor = isSelected and SelectedTheme.Text or SelectedTheme.TextDark
-                    end
-
-                    local NameLabel = Create("TextLabel", {
-                        Parent              = Btn,
-                        Size                = UDim2.new(1, -60, 1, 0),
-                        Position            = UDim2.new(0, 34, 0, 0),
-                        BackgroundTransparency = 1,
-                        Text                = displayName .. (isDisconnected and " (saiu)" or ""),
-                        Font                = Library.GlobalFont,
-                        TextColor3          = textColor,
-                        TextSize            = 13,
-                        TextXAlignment      = Enum.TextXAlignment.Left,
-                        ZIndex              = 10,
-                        TextTruncate        = Enum.TextTruncate.AtEnd,
-                    })
-
-            -- checkmark
-                    local CheckMark = Create("ImageLabel", {
-                        Parent              = Btn,
-                        Size                = UDim2.new(0, 14, 0, 14),
-                        Position            = UDim2.new(1, -22, 0.5, -7),
-                        BackgroundTransparency = 1,
-                        Image               = "rbxassetid://6031094678",
-                        ImageColor3         = SelectedTheme.ElementAccent,
-                        ZIndex              = 10,
-                        Visible             = isSelected,
-                    })
-                    table.insert(Library.ThemeObjects.ElementAccent, CheckMark)
-
-            -- hover
-                    Btn.MouseEnter:Connect(function()
-                        TS:Create(Btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.4}):Play()
-                    end)
-                    Btn.MouseLeave:Connect(function()
-                        TS:Create(Btn, TweenInfo.new(0.15), {
-                            BackgroundTransparency = Selected[userId] and 0.2 or 0.8
-                        }):Play()
-                    end)
-
-                    Btn.MouseButton1Click:Connect(function()
-                        local target = isDisconnected
-                            and {Name = Disconnected[userId] and Disconnected[userId].Name or plr.Name, Disconnected = true}
-                            or plr
-                        TogglePlayer(userId, target)
-                    end)
-
-                    rowObjects[userId] = {Btn = Btn, CheckMark = CheckMark, NameLabel = NameLabel}
-                    return Btn
-                end
-
-            -- ─────────────────────────────────────────
-            --  Rebuild: reconstrói a lista completa
-            -- ─────────────────────────────────────────
-                local function Rebuild()
-            -- limpa linhas antigas
+                local function RefreshList()
                     for _, v in pairs(Container:GetChildren()) do
                         if v:IsA("TextButton") then v:Destroy() end
                     end
-                    rowObjects = {}
 
                     local rows = 0
 
-            -- jogadores vivos
+                    -- jogadores vivos (exceto local player)
                     for _, plr in ipairs(Plrs:GetPlayers()) do
                         if plr ~= LP then
-                            CreateRow(plr, false)
-                            rows = rows + 1
+                            local uid = plr.UserId
+                            local isSelected = Selected[uid] ~= nil
+
+                            local thumb = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+                            pcall(function()
+                                thumb = Plrs:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+                            end)
+
+                            local Btn = Create("TextButton", {
+                                Parent = Container,
+                                Size = UDim2.new(1, 0, 0, 28),
+                                BackgroundColor3 = SelectedTheme.Main,
+                                BackgroundTransparency = isSelected and 0.2 or 0.8,
+                                Text = "",
+                                AutoButtonColor = false,
+                                ZIndex = 9,
+                                ThemeTag = "Main"
+                            })
+                            AddCorner(Btn, 6)
+
+                            local Avatar = Create("ImageLabel", {
+                                Parent = Btn,
+                                Size = UDim2.new(0, 20, 0, 20),
+                                Position = UDim2.new(0, 5, 0.5, -10),
+                                BackgroundTransparency = 1,
+                                Image = thumb,
+                                ZIndex = 10
+                            })
+                            AddCorner(Avatar, 100)
+
+                            local NameLabel = Create("TextLabel", {
+                                Parent = Btn,
+                                Size = UDim2.new(1, -54, 1, 0),
+                                Position = UDim2.new(0, 30, 0, 0),
+                                BackgroundTransparency = 1,
+                                Text = plr.DisplayName,
+                                Font = Library.GlobalFont,
+                                TextColor3 = isSelected and SelectedTheme.Text or SelectedTheme.TextDark,
+                                TextSize = 13,
+                                TextXAlignment = Enum.TextXAlignment.Left,
+                                ZIndex = 10,
+                                TextTruncate = Enum.TextTruncate.AtEnd,
+                                ThemeTag = isSelected and "Text" or "TextDark"
+                            })
+
+                            local Check = Create("ImageLabel", {
+                                Parent = Btn,
+                                Size = UDim2.new(0, 14, 0, 14),
+                                Position = UDim2.new(1, -20, 0.5, -7),
+                                BackgroundTransparency = 1,
+                                Image = "rbxassetid://6031094678",
+                                ImageColor3 = SelectedTheme.ElementAccent,
+                                ZIndex = 10,
+                                Visible = isSelected
+                            })
+                            table.insert(Library.ThemeObjects.ElementAccent, Check)
+
+                            Btn.MouseEnter:Connect(function()
+                                TS:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
+                            end)
+                            Btn.MouseLeave:Connect(function()
+                                TS:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = Selected[uid] and 0.2 or 0.8}):Play()
+                            end)
+                            Btn.MouseButton1Click:Connect(function()
+                                if Selected[uid] then
+                                    Selected[uid] = nil
+                                else
+                                    local count = 0
+                                    for _ in pairs(Selected) do count += 1 end
+                                    if count >= MaxSelect then return end
+                                    Selected[uid] = plr
+                                end
+                                RefreshList()
+                                UpdateTitle()
+                            end)
+
+                            rows += 1
                         end
                     end
 
-            -- jogadores desconectados que estavam selecionados
+                    -- jogadores desconectados (só os que estavam selecionados)
                     for uid, info in pairs(Disconnected) do
-            -- cria um "fake" player-like para passar ao CreateRow
-                        local fake = {UserId = uid, Name = info.Name, DisplayName = info.Name}
-                        CreateRow(fake, true)
-                        rows = rows + 1
+                        local isSelected = Selected[uid] ~= nil
+
+                        local Btn = Create("TextButton", {
+                            Parent = Container,
+                            Size = UDim2.new(1, 0, 0, 28),
+                            BackgroundColor3 = SelectedTheme.Main,
+                            BackgroundTransparency = isSelected and 0.2 or 0.8,
+                            Text = "",
+                            AutoButtonColor = false,
+                            ZIndex = 9,
+                            ThemeTag = "Main"
+                        })
+                        AddCorner(Btn, 6)
+
+                        local NameLabel = Create("TextLabel", {
+                            Parent = Btn,
+                            Size = UDim2.new(1, -20, 1, 0),
+                            Position = UDim2.new(0, 10, 0, 0),
+                            BackgroundTransparency = 1,
+                            Text = info.Name .. " (saiu)",
+                            Font = Library.GlobalFont,
+                            TextColor3 = Color3.fromRGB(255, 80, 80),
+                            TextSize = 13,
+                            TextXAlignment = Enum.TextXAlignment.Left,
+                            ZIndex = 10,
+                            TextTruncate = Enum.TextTruncate.AtEnd
+                        })
+
+                        local Check = Create("ImageLabel", {
+                            Parent = Btn,
+                            Size = UDim2.new(0, 14, 0, 14),
+                            Position = UDim2.new(1, -20, 0.5, -7),
+                            BackgroundTransparency = 1,
+                            Image = "rbxassetid://6031094678",
+                            ImageColor3 = SelectedTheme.ElementAccent,
+                            ZIndex = 10,
+                            Visible = isSelected
+                        })
+                        table.insert(Library.ThemeObjects.ElementAccent, Check)
+
+                        Btn.MouseEnter:Connect(function()
+                            TS:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
+                        end)
+                        Btn.MouseLeave:Connect(function()
+                            TS:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = Selected[uid] and 0.2 or 0.8}):Play()
+                        end)
+                        Btn.MouseButton1Click:Connect(function()
+                            if Selected[uid] then
+                                -- desselecionar: remove de tudo e some da lista
+                                Selected[uid] = nil
+                                Disconnected[uid] = nil
+                                RefreshList()
+                                UpdateTitle()
+                            end
+                            -- se não está selecionado, não permite re-selecionar desconectado
+                        end)
+
+                        rows += 1
                     end
 
-            -- atualiza canvas
-                    Container.CanvasSize = UDim2.new(0, 0, 0, rows * 36 + 10)
+                    local totalH = rows * 32 + 10
+                    Container.CanvasSize = UDim2.new(0, 0, 0, totalH)
 
-            -- recalcula altura do drop se expandido
                     if Expanded then
-                        local H = math.min(rows * 36 + 44, 200)
+                        local H = math.min(totalH + 44, 180)
                         Drop.Size = UDim2.new(1, 0, 0, H)
                     end
                 end
 
-            -- ─────────────────────────────────────────
-            --  Evento: jogador entra
-            -- ─────────────────────────────────────────
+                -- eventos de jogadores
                 Plrs.PlayerAdded:Connect(function(plr)
                     local uid = plr.UserId
                     if Disconnected[uid] then
                         Disconnected[uid] = nil
-                        if Selected[uid] then
-                            Selected[uid] = plr
-                        end
+                        if Selected[uid] then Selected[uid] = plr end
                     end
-                    Rebuild()
+                    RefreshList()
                     UpdateTitle()
                 end)
 
-            -- ─────────────────────────────────────────
-            --  Evento: jogador sai
-            -- ─────────────────────────────────────────
                 Plrs.PlayerRemoving:Connect(function(plr)
                     local uid = plr.UserId
                     if Selected[uid] then
                         Disconnected[uid] = {Name = plr.DisplayName}
                         Selected[uid] = {Name = plr.DisplayName, Disconnected = true}
                     end
-                    Rebuild()
-                    UpdateTitle()
-                end)
+                    RefreshList()
                     UpdateTitle()
                 end)
 
-            -- ─────────────────────────────────────────
-            --  Toggle open/close
-            -- ─────────────────────────────────────────
+                -- toggle abrir/fechar
                 Drop.MouseButton1Click:Connect(function()
-                    if not Expanded then
-                        Rebuild()
-                    end
                     Expanded = not Expanded
-
-                    local rowCount = 0
+                    RefreshList()
+                    local rows = 0
                     for _, v in pairs(Container:GetChildren()) do
-                        if v:IsA("TextButton") then rowCount = rowCount + 1 end
+                        if v:IsA("TextButton") then rows += 1 end
                     end
-
-                    local H = Expanded and math.min(rowCount * 36 + 44, 200) or 34
-                    TS:Create(Drop, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-                        {Size = UDim2.new(1, 0, 0, H)}):Play()
-                    TS:Create(Arrow, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-                        {Rotation = Expanded and 180 or 0}):Play()
-                    TS:Create(Container, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-                        {Size = UDim2.new(1, 0, 1, -34)}):Play()
+                    local H = Expanded and math.min(rows * 32 + 44, 180) or 34
+                    TS:Create(Drop, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, H)}):Play()
+                    TS:Create(Arrow, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Rotation = Expanded and 180 or 0}):Play()
+                    TS:Create(Container, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, -34)}):Play()
                 end)
 
-            -- ─────────────────────────────────────────
-            --  Defaults pré-selecionados
-            -- ─────────────────────────────────────────
+                -- defaults
                 if Cfg.Default then
                     for _, name in ipairs(Cfg.Default) do
                         for _, plr in ipairs(Plrs:GetPlayers()) do
                             if plr.Name == name or plr.DisplayName == name then
                                 local count = 0
-                                for _ in pairs(Selected) do count = count + 1 end
-                                if count < MaxSelect then
-                                    Selected[plr.UserId] = plr
-                                end
+                                for _ in pairs(Selected) do count += 1 end
+                                if count < MaxSelect then Selected[plr.UserId] = plr end
                                 break
                             end
                         end
@@ -3553,15 +3489,8 @@ function Library:CreateWindow(Settings)
                     UpdateTitle()
                 end
 
-            -- ─────────────────────────────────────────
-            --  API pública
-            -- ─────────────────────────────────────────
                 Library.Items[Flag] = {
-            -- retorna tabela de Players vivos selecionados
-                    Get = function()
-                        return GetSelectedPlayers()
-                    end,
-            -- força seleção por nome
+                    Get = GetSelectedPlayers,
                     Set = function(names)
                         Selected = {}
                         if type(names) == "table" then
@@ -3569,29 +3498,23 @@ function Library:CreateWindow(Settings)
                                 for _, plr in ipairs(Plrs:GetPlayers()) do
                                     if plr.Name == name or plr.DisplayName == name then
                                         local count = 0
-                                        for _ in pairs(Selected) do count = count + 1 end
-                                        if count < MaxSelect then
-                                            Selected[plr.UserId] = plr
-                                        end
+                                        for _ in pairs(Selected) do count += 1 end
+                                        if count < MaxSelect then Selected[plr.UserId] = plr end
                                         break
                                     end
                                 end
                             end
                         end
-                        Rebuild()
+                        RefreshList()
                         UpdateTitle()
                     end,
-            -- limpa tudo
                     Clear = function()
                         Selected = {}
                         Disconnected = {}
-                        Rebuild()
+                        RefreshList()
                         UpdateTitle()
                     end,
-            -- altera o máximo em runtime
-                    SetMax = function(n)
-                        MaxSelect = n
-                    end,
+                    SetMax = function(n) MaxSelect = n end
                 }
 
                 return Library.Items[Flag]

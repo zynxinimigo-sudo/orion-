@@ -3325,6 +3325,7 @@ function Library:CreateWindow(Settings)
                 local function TogglePlayer(userId, playerOrInfo)
                     if Selected[userId] then
                         Selected[userId] = nil
+                        Disconnected[userId] = nil
                     else
             -- checar limite
                         local count = 0

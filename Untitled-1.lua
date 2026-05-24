@@ -312,6 +312,9 @@ local function GetAssetId(id)
     if str:find("rbxasset://") or str:find("rbxthumb://") or str:find("rbxassetid://") then
         return str
     end
+    if str:find("^https?://") then
+        return str
+    end
     local num = str:match("%d+")
     if num then
         return "rbxassetid://" .. num
@@ -3196,7 +3199,7 @@ function Library:CreateWindow(Settings)
                     BackgroundTransparency = 0.5,
                     Text                = "",
                     AutoButtonColor     = false,
-                    ClipsDescendants    = true,
+                    ClipsDescendants    = false,
                     ZIndex              = 7,
                     LayoutOrder         = ElementOrder,
                     ThemeTag            = "Second",
@@ -3237,7 +3240,8 @@ function Library:CreateWindow(Settings)
                     Parent              = Drop,
                     Size                = UDim2.new(1, 0, 0, 0),
                     Position            = UDim2.new(0, 0, 0, 34),
-                    BackgroundTransparency = 1,
+                    BackgroundColor3    = SelectedTheme.Second,
+                    BackgroundTransparency = 0.3,
                     ZIndex              = 8,
                     ScrollBarThickness  = 2,
                     ScrollBarImageColor3 = SelectedTheme.TextDark,
@@ -3326,6 +3330,7 @@ function Library:CreateWindow(Settings)
                     if Selected[userId] then
                         Selected[userId] = nil
                         Disconnected[userId] = nil
+                        Rebuild()
                     else
             -- checar limite
                         local count = 0
@@ -3482,11 +3487,10 @@ function Library:CreateWindow(Settings)
             -- ─────────────────────────────────────────
                 Plrs.PlayerAdded:Connect(function(plr)
                     local uid = plr.UserId
-            -- se estava na lista de desconectados, remove e re-seleciona como Player vivo
                     if Disconnected[uid] then
                         Disconnected[uid] = nil
                         if Selected[uid] then
-                            Selected[uid] = plr   -- atualiza referência para o Player real
+                            Selected[uid] = plr
                         end
                     end
                     Rebuild()
@@ -3498,15 +3502,13 @@ function Library:CreateWindow(Settings)
             -- ─────────────────────────────────────────
                 Plrs.PlayerRemoving:Connect(function(plr)
                     local uid = plr.UserId
-            -- armazena info do jogador
-                    Disconnected[uid] = {Name = plr.DisplayName}
-
-            -- se estava selecionado, mantém na lista como "desconectado"
                     if Selected[uid] then
+                        Disconnected[uid] = {Name = plr.DisplayName}
                         Selected[uid] = {Name = plr.DisplayName, Disconnected = true}
                     end
-
                     Rebuild()
+                    UpdateTitle()
+                end)
                     UpdateTitle()
                 end)
 
@@ -3767,6 +3769,27 @@ function Library:CreateWindow(Settings)
         Flag = "Settings_ToggleKey",
         Default = Library.ToggleKey,
         Callback = function() end
+    })
+
+    local MouseUnlocked = false
+    RS.RenderStepped:Connect(function()
+        if MouseUnlocked then
+            UIS.MouseBehavior = Enum.MouseBehavior.Default
+            UIS.MouseIconEnabled = true
+        end
+    end)
+
+    KeyBlock:CreateToggle({
+        Name = "Free Mouse",
+        Flag = "Settings_FreeMouse",
+        Default = false,
+        Callback = function(state)
+            MouseUnlocked = state
+            if not state then
+                -- devolve o controle pro jogo quando desliga
+                UIS.MouseBehavior = Enum.MouseBehavior.Default
+            end
+        end
     })
 
     local ConfigBlock = SettingsTab:CreateBlock({Name = "Config Manager", Side = "Left"})

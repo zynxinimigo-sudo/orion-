@@ -1,4 +1,4 @@
--- FARMAR AURA CARALHOOOOOOOOOOOOOOOOOOOOOOOO
+-- 0000000000000000000000000000000000000000000000700000000000000000000000
 local Library = {}
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
@@ -3746,16 +3746,20 @@ function Library:CreateWindow(Settings)
         end
     })
 
-    ConfigBlock:CreateToggle({
+    ConfigBlock:CreateButton({
         Name = "Auto Load Config",
-        Flag = "Settings_AutoLoadConfig",
-        Default = false,
-        Callback = function(state)
-            if state then
+        Callback = function()
+            local sel = LoadDropCfg:Get()
+            if sel and sel ~= "" then
+                Library:LoadConfig(sel)
+                Library:Notify({Title = "Config Loaded", Content = "Config \"" .. sel .. "\" carregada"})
+            else
                 local configs = Library:GetConfigs()
                 if #configs > 0 then
                     Library:LoadConfig(configs[1])
-                    Library:Notify({Title = "Auto Load", Content = "Config \"" .. configs[1] .. "\" carregada"})
+                    Library:Notify({Title = "Config Loaded", Content = "Config \"" .. configs[1] .. "\" carregada"})
+                else
+                    Library:Notify({Title = "Erro", Content = "Nenhuma config salva"})
                 end
             end
         end
@@ -3928,12 +3932,27 @@ function Library:CreateWindow(Settings)
         end
     })
 
-    ThemeBlock:CreateToggle({
+    ThemeBlock:CreateButton({
         Name = "Auto Load Theme",
-        Flag = "Settings_AutoLoadTheme",
-        Default = false,
-        Callback = function(state)
-            if state then
+        Callback = function()
+            local sel = LoadDrop:Get()
+            if sel and sel ~= "" then
+                local NewTheme = GetTheme(sel)
+                MainBgColor.BackgroundColor3 = NewTheme.Main
+                SetImageAsync(MainBgImage, "Image", NewTheme.Background or "")
+                MainBgColor.BackgroundTransparency = NewTheme.Transparency or 0.25
+                MainBgImage.ImageTransparency = NewTheme.ImageTransparency or 0
+                if NewTheme.HudTransparency then SelectedTheme.HudTransparency = NewTheme.HudTransparency end
+                if NewTheme.Font then Library.GlobalFont = Enum.Font[NewTheme.Font] end
+                if NewTheme.CornerRadius then Library.GlobalCornerValue = NewTheme.CornerRadius end
+                for key, val2 in pairs(NewTheme) do
+                    if SelectedTheme[key] and typeof(SelectedTheme[key]) == "Color3" then
+                        SelectedTheme[key] = Color3.new(val2.R, val2.G, val2.B)
+                    end
+                end
+                UpdateThemeObjects()
+                Library:Notify({Title = "Theme Loaded", Content = "Tema \"" .. sel .. "\" carregado"})
+            else
                 local themes = Library:GetThemes()
                 if #themes > 0 then
                     local val = themes[1]
@@ -3951,40 +3970,20 @@ function Library:CreateWindow(Settings)
                         end
                     end
                     UpdateThemeObjects()
-                    Library:Notify({Title = "Auto Load", Content = "Tema \"" .. val .. "\" carregado"})
+                    Library:Notify({Title = "Theme Loaded", Content = "Tema \"" .. val .. "\" carregado"})
+                else
+                    Library:Notify({Title = "Erro", Content = "Nenhum tema salvo"})
                 end
             end
         end
     })
 
     ThemeBlock:CreateButton({
-        Name = "Delete Selected Theme",
+        Name = "Reload Theme",
         Callback = function()
-            local selected = LoadDrop:Get()
-            if selected and isfile(Library.ThemeFolder .. "/" .. selected .. ".json") then
-                delfile(Library.ThemeFolder .. "/" .. selected .. ".json")
-                Library:Notify({Title = "Theme Deleted", Content = "Deleted " .. selected})
-            else
-                Library:Notify({Title = "Error", Content = "Select a valid theme first"})
-            end
-        end
-    })
-
-    -- Auto Load na inicialização
-    task.defer(function()
-        -- Auto Load Config
-        if Library.Flags["Settings_AutoLoadConfig"] then
-            local configs = Library:GetConfigs()
-            if #configs > 0 then
-                Library:LoadConfig(configs[1])
-            end
-        end
-        -- Auto Load Theme
-        if Library.Flags["Settings_AutoLoadTheme"] then
-            local themes = Library:GetThemes()
-            if #themes > 0 then
-                local val = themes[1]
-                local NewTheme = GetTheme(val)
+            local sel = LoadDrop:Get()
+            if sel and sel ~= "" then
+                local NewTheme = GetTheme(sel)
                 MainBgColor.BackgroundColor3 = NewTheme.Main
                 SetImageAsync(MainBgImage, "Image", NewTheme.Background or "")
                 MainBgColor.BackgroundTransparency = NewTheme.Transparency or 0.25
@@ -3998,9 +3997,25 @@ function Library:CreateWindow(Settings)
                     end
                 end
                 UpdateThemeObjects()
+                Library:Notify({Title = "Theme Reloaded", Content = "Tema \"" .. sel .. "\" atualizado"})
+            else
+                Library:Notify({Title = "Erro", Content = "Selecione um tema primeiro"})
             end
         end
-    end)
+    })
+    ThemeBlock:CreateButton({
+        Name = "Delete Selected Theme",
+        Callback = function()
+            local selected = LoadDrop:Get()
+            if selected and isfile(Library.ThemeFolder .. "/" .. selected .. ".json") then
+                delfile(Library.ThemeFolder .. "/" .. selected .. ".json")
+                Library:Notify({Title = "Theme Deleted", Content = "Deleted " .. selected})
+            else
+                Library:Notify({Title = "Error", Content = "Select a valid theme first"})
+            end
+        end
+    })
+
 
     return Funcs
 end

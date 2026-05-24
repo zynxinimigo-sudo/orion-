@@ -1,4 +1,3 @@
--- 0000000000000000000000000000000000000000000000700000000000000000000000
 local Library = {}
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")

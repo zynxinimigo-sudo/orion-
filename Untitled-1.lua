@@ -1714,7 +1714,7 @@ function Library:CreateWindow(Settings)
         Position = UDim2.new(0, 195, 0, 60),
         BackgroundTransparency = 1,
         ZIndex = 5,
-        ClipsDescendants = true
+        ClipsDescendants = false
     })
 
     local IsOpen, LastSize = true, WindowSize
@@ -3199,8 +3199,8 @@ function Library:CreateWindow(Settings)
                     BackgroundTransparency = 0.5,
                     Text                = "",
                     AutoButtonColor     = false,
-                    ClipsDescendants    = false,
-                    ZIndex              = 7,
+                    ClipsDescendants    = true,
+                    ZIndex              = 100,
                     LayoutOrder         = ElementOrder,
                     ThemeTag            = "Second",
                 })
@@ -3240,8 +3240,7 @@ function Library:CreateWindow(Settings)
                     Parent              = Drop,
                     Size                = UDim2.new(1, 0, 0, 0),
                     Position            = UDim2.new(0, 0, 0, 34),
-                    BackgroundColor3    = SelectedTheme.Second,
-                    BackgroundTransparency = 0.3,
+                    BackgroundTransparency = 1,
                     ZIndex              = 8,
                     ScrollBarThickness  = 2,
                     ScrollBarImageColor3 = SelectedTheme.TextDark,

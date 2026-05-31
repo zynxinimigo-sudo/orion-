@@ -1,5 +1,5 @@
--- I AM HEROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOSIXSEVEEEEEEEEEEEEEN
-
+-- VAI BRASIL
+-- VA
 local Library = {}
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")

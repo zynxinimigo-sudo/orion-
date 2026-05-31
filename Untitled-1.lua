@@ -1316,6 +1316,10 @@ function Library:CreateWindow(Settings)
     local function SetMouseModal(state)
         ModalBtn.Modal = state
         ModalBtn.Visible = state
+        if state then
+            UIS.MouseBehavior = Enum.MouseBehavior.Default
+            UIS.MouseIconEnabled = true
+        end
     end
 
     -- Hub começa aberto, então ativa o modal imediatamente

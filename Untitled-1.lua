@@ -1304,6 +1304,23 @@ function Library:CreateWindow(Settings)
         end
     end
 
+    -- Modal para liberar o mouse quando o hub está aberto
+    local ModalBtn = Instance.new("TextButton")
+    ModalBtn.BackgroundTransparency = 1
+    ModalBtn.Size = UDim2.new(0, 0, 0, 0)
+    ModalBtn.Modal = true
+    ModalBtn.ZIndex = -1
+    ModalBtn.Text = ""
+    ModalBtn.Parent = ScreenGui
+
+    local function SetMouseModal(state)
+        ModalBtn.Modal = state
+        ModalBtn.Visible = state
+    end
+
+    -- Hub começa aberto, então ativa o modal imediatamente
+    SetMouseModal(true)
+
     local NotifContainer = Create("Frame", {
         Parent = ScreenGui,
         Size = UDim2.new(0, 320, 1, -20),
@@ -1620,6 +1637,7 @@ function Library:CreateWindow(Settings)
         TS:Create(Cross2, TweenInfo.new(0.2), {BackgroundColor3 = SelectedTheme.Text}):Play() 
     end)
     Close.MouseButton1Click:Connect(function()
+        SetMouseModal(false)
         ScreenGui:Destroy()
     end)
 
@@ -1722,7 +1740,8 @@ function Library:CreateWindow(Settings)
     local function ToggleUI()
         IsOpen = not IsOpen 
         if IsOpen then 
-            WindowContainer.Visible = true 
+            WindowContainer.Visible = true
+            SetMouseModal(true)
             TS:Create(WindowContainer, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = LastSize}):Play() 
             TS:Create(Shadow1, TweenInfo.new(0.6), {ImageTransparency = 0.35}):Play()
             TS:Create(Shadow2, TweenInfo.new(0.6), {ImageTransparency = 0.4}):Play()
@@ -1735,6 +1754,7 @@ function Library:CreateWindow(Settings)
             close.Completed:Connect(function()
                 if not IsOpen then
                     WindowContainer.Visible = false
+                    SetMouseModal(false)
                 end
             end) 
         end
@@ -3693,26 +3713,7 @@ function Library:CreateWindow(Settings)
         Callback = function() end
     })
 
-    local MouseUnlocked = false
-    RS.RenderStepped:Connect(function()
-        if MouseUnlocked then
-            UIS.MouseBehavior = Enum.MouseBehavior.Default
-            UIS.MouseIconEnabled = true
-        end
-    end)
 
-    KeyBlock:CreateToggle({
-        Name = "Free Mouse",
-        Flag = "Settings_FreeMouse",
-        Default = false,
-        Callback = function(state)
-            MouseUnlocked = state
-            if not state then
-                -- devolve o controle pro jogo quando desliga
-                UIS.MouseBehavior = Enum.MouseBehavior.Default
-            end
-        end
-    })
 
     local ConfigBlock = SettingsTab:CreateBlock({Name = "Config Manager", Side = "Left"})
 
@@ -3745,21 +3746,20 @@ function Library:CreateWindow(Settings)
         end
     })
 
-    ConfigBlock:CreateButton({
+    local _autoLoadCfgFile = Library.ConfigFolder .. "/AutoLoadConfig.json"
+    local _autoLoadCfgEnabled = isfile(_autoLoadCfgFile) and HS:JSONDecode(readfile(_autoLoadCfgFile)).enabled or false
+    local _autoLoadCfgName   = isfile(_autoLoadCfgFile) and HS:JSONDecode(readfile(_autoLoadCfgFile)).name   or ""
+
+    ConfigBlock:CreateToggle({
         Name = "Auto Load Config",
-        Callback = function()
+        Flag = "Settings_AutoLoadConfig",
+        Default = _autoLoadCfgEnabled,
+        Callback = function(state)
             local sel = LoadDropCfg:Get()
-            if sel and sel ~= "" then
-                Library:LoadConfig(sel)
-                Library:Notify({Title = "Config Loaded", Content = "Config \"" .. sel .. "\" carregada"})
-            else
-                local configs = Library:GetConfigs()
-                if #configs > 0 then
-                    Library:LoadConfig(configs[1])
-                    Library:Notify({Title = "Config Loaded", Content = "Config \"" .. configs[1] .. "\" carregada"})
-                else
-                    Library:Notify({Title = "Erro", Content = "Nenhuma config salva"})
-                end
+            local name = (sel and sel ~= "") and sel or _autoLoadCfgName
+            writefile(_autoLoadCfgFile, HS:JSONEncode({enabled = state, name = name}))
+            if state then
+                Library:Notify({Title = "Auto Load Config", Content = "Vai carregar \"" .. name .. "\" ao iniciar"})
             end
         end
     })
@@ -3931,48 +3931,20 @@ function Library:CreateWindow(Settings)
         end
     })
 
-    ThemeBlock:CreateButton({
+    local _autoLoadThemeFile = Library.ThemeFolder .. "/AutoLoadTheme.json"
+    local _autoLoadThemeEnabled = isfile(_autoLoadThemeFile) and HS:JSONDecode(readfile(_autoLoadThemeFile)).enabled or false
+    local _autoLoadThemeName   = isfile(_autoLoadThemeFile) and HS:JSONDecode(readfile(_autoLoadThemeFile)).name   or ""
+
+    ThemeBlock:CreateToggle({
         Name = "Auto Load Theme",
-        Callback = function()
+        Flag = "Settings_AutoLoadTheme",
+        Default = _autoLoadThemeEnabled,
+        Callback = function(state)
             local sel = LoadDrop:Get()
-            if sel and sel ~= "" then
-                local NewTheme = GetTheme(sel)
-                MainBgColor.BackgroundColor3 = NewTheme.Main
-                SetImageAsync(MainBgImage, "Image", NewTheme.Background or "")
-                MainBgColor.BackgroundTransparency = NewTheme.Transparency or 0.25
-                MainBgImage.ImageTransparency = NewTheme.ImageTransparency or 0
-                if NewTheme.HudTransparency then SelectedTheme.HudTransparency = NewTheme.HudTransparency end
-                if NewTheme.Font then Library.GlobalFont = Enum.Font[NewTheme.Font] end
-                if NewTheme.CornerRadius then Library.GlobalCornerValue = NewTheme.CornerRadius end
-                for key, val2 in pairs(NewTheme) do
-                    if SelectedTheme[key] and typeof(SelectedTheme[key]) == "Color3" then
-                        SelectedTheme[key] = Color3.new(val2.R, val2.G, val2.B)
-                    end
-                end
-                UpdateThemeObjects()
-                Library:Notify({Title = "Theme Loaded", Content = "Tema \"" .. sel .. "\" carregado"})
-            else
-                local themes = Library:GetThemes()
-                if #themes > 0 then
-                    local val = themes[1]
-                    local NewTheme = GetTheme(val)
-                    MainBgColor.BackgroundColor3 = NewTheme.Main
-                    SetImageAsync(MainBgImage, "Image", NewTheme.Background or "")
-                    MainBgColor.BackgroundTransparency = NewTheme.Transparency or 0.25
-                    MainBgImage.ImageTransparency = NewTheme.ImageTransparency or 0
-                    if NewTheme.HudTransparency then SelectedTheme.HudTransparency = NewTheme.HudTransparency end
-                    if NewTheme.Font then Library.GlobalFont = Enum.Font[NewTheme.Font] end
-                    if NewTheme.CornerRadius then Library.GlobalCornerValue = NewTheme.CornerRadius end
-                    for key, val2 in pairs(NewTheme) do
-                        if SelectedTheme[key] and typeof(SelectedTheme[key]) == "Color3" then
-                            SelectedTheme[key] = Color3.new(val2.R, val2.G, val2.B)
-                        end
-                    end
-                    UpdateThemeObjects()
-                    Library:Notify({Title = "Theme Loaded", Content = "Tema \"" .. val .. "\" carregado"})
-                else
-                    Library:Notify({Title = "Erro", Content = "Nenhum tema salvo"})
-                end
+            local name = (sel and sel ~= "") and sel or _autoLoadThemeName
+            writefile(_autoLoadThemeFile, HS:JSONEncode({enabled = state, name = name}))
+            if state then
+                Library:Notify({Title = "Auto Load Theme", Content = "Vai carregar \"" .. name .. "\" ao iniciar"})
             end
         end
     })
@@ -4015,6 +3987,48 @@ function Library:CreateWindow(Settings)
         end
     })
 
+
+    -- Auto Load na inicialização
+    task.defer(function()
+        local HS2 = game:GetService("HttpService")
+
+        -- Auto Load Config
+        local cfgFile = Library.ConfigFolder .. "/AutoLoadConfig.json"
+        if isfile(cfgFile) then
+            local ok, data = pcall(function() return HS2:JSONDecode(readfile(cfgFile)) end)
+            if ok and data.enabled and data.name and data.name ~= "" then
+                if isfile(Library.ConfigFolder .. "/" .. data.name .. ".json") then
+                    Library:LoadConfig(data.name)
+                    Library:Notify({Title = "Auto Load", Content = "Config \"" .. data.name .. "\" carregada"})
+                end
+            end
+        end
+
+        -- Auto Load Theme
+        local themeFile = Library.ThemeFolder .. "/AutoLoadTheme.json"
+        if isfile(themeFile) then
+            local ok, data = pcall(function() return HS2:JSONDecode(readfile(themeFile)) end)
+            if ok and data.enabled and data.name and data.name ~= "" then
+                local NewTheme = GetTheme(data.name)
+                if NewTheme then
+                    MainBgColor.BackgroundColor3 = NewTheme.Main
+                    SetImageAsync(MainBgImage, "Image", NewTheme.Background or "")
+                    MainBgColor.BackgroundTransparency = NewTheme.Transparency or 0.25
+                    MainBgImage.ImageTransparency = NewTheme.ImageTransparency or 0
+                    if NewTheme.HudTransparency then SelectedTheme.HudTransparency = NewTheme.HudTransparency end
+                    if NewTheme.Font then Library.GlobalFont = Enum.Font[NewTheme.Font] end
+                    if NewTheme.CornerRadius then Library.GlobalCornerValue = NewTheme.CornerRadius end
+                    for key, val2 in pairs(NewTheme) do
+                        if SelectedTheme[key] and typeof(SelectedTheme[key]) == "Color3" then
+                            SelectedTheme[key] = Color3.new(val2.R, val2.G, val2.B)
+                        end
+                    end
+                    UpdateThemeObjects()
+                    Library:Notify({Title = "Auto Load", Content = "Tema \"" .. data.name .. "\" carregado"})
+                end
+            end
+        end
+    end)
 
     return Funcs
 end

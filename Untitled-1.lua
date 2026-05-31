@@ -3545,6 +3545,202 @@ function Library:CreateWindow(Settings)
             end
 
 
+            function Elements:CreateToggleKey(Cfg)
+                ElementOrder = ElementOrder + 1
+                local Flag      = Cfg.Flag or Cfg.Name
+                local KeyFlag   = Flag .. "_Key"
+                local State     = false
+                local CurrentKey = Cfg.DefaultKey or Enum.KeyCode.RightControl
+                local Binding   = false
+
+                Library.Flags[Flag]    = false
+                Library.Flags[KeyFlag] = CurrentKey.Name
+
+                local Frame = Create("Frame", {
+                    Parent              = TargetParent,
+                    Size                = UDim2.new(1, 0, 0, 34),
+                    BackgroundColor3    = SelectedTheme.Second,
+                    BackgroundTransparency = 0.5,
+                    ZIndex              = 7,
+                    LayoutOrder         = ElementOrder,
+                    ThemeTag            = "Second"
+                })
+                AddCorner(Frame, 8)
+                AddStroke(Frame, SelectedTheme).Transparency = 0.8
+
+                -- nome
+                Create("TextLabel", {
+                    Parent              = Frame,
+                    Size                = UDim2.new(1, -140, 1, 0),
+                    Position            = UDim2.new(0, 44, 0, 0),
+                    BackgroundTransparency = 1,
+                    Text                = Cfg.Name or "ToggleKey",
+                    Font                = Library.GlobalFont,
+                    TextColor3          = SelectedTheme.Text,
+                    TextSize            = 14,
+                    TextXAlignment      = Enum.TextXAlignment.Left,
+                    ZIndex              = 8,
+                    TextTruncate        = Enum.TextTruncate.AtEnd,
+                    ThemeTag            = "Text"
+                })
+
+                -- ── checkbox (toggle) ──────────────────────────
+                local Box = Create("Frame", {
+                    Parent              = Frame,
+                    Size                = UDim2.new(0, 20, 0, 20),
+                    Position            = UDim2.new(0, 12, 0.5, -10),
+                    BackgroundColor3    = Color3.new(0, 0, 0),
+                    BackgroundTransparency = 1,
+                    ZIndex              = 8
+                })
+                AddCorner(Box, 4)
+
+                local BoxStroke = Create("UIStroke", {
+                    Parent      = Box,
+                    Color       = SelectedTheme.TextDark,
+                    Transparency = 0.8,
+                    Thickness   = 1
+                })
+
+                local InnerSquare = Create("Frame", {
+                    Parent              = Box,
+                    Size                = UDim2.fromScale(0, 0),
+                    Position            = UDim2.fromScale(0.5, 0.5),
+                    AnchorPoint         = Vector2.new(0.5, 0.5),
+                    BackgroundColor3    = SelectedTheme.TextDark,
+                    BackgroundTransparency = 1,
+                    ZIndex              = 9
+                })
+                AddCorner(InnerSquare, 2)
+
+                table.insert(Library.ThemeObjects.Toggles, {
+                    Box    = Box,
+                    Stroke = BoxStroke,
+                    Square = InnerSquare,
+                    State  = function() return State end
+                })
+
+                -- ── keybind button ─────────────────────────────
+                local BindBtn = Create("TextButton", {
+                    Parent              = Frame,
+                    Size                = UDim2.new(0, 70, 0, 24),
+                    Position            = UDim2.new(1, -82, 0.5, -12),
+                    BackgroundColor3    = Color3.new(0, 0, 0),
+                    BackgroundTransparency = 0.85,
+                    Text                = KeyMap[CurrentKey.Name] or CurrentKey.Name,
+                    Font                = Library.GlobalFontBold,
+                    TextColor3          = SelectedTheme.TextDark,
+                    TextSize            = 12,
+                    ZIndex              = 9,
+                    TextTruncate        = Enum.TextTruncate.AtEnd
+                })
+                AddCorner(BindBtn, 6)
+                local BindStroke = Create("UIStroke", {
+                    Parent      = BindBtn,
+                    Color       = SelectedTheme.TextDark,
+                    Transparency = 0.8,
+                    Thickness   = 1
+                })
+                table.insert(Library.ThemeObjects.Keybinds, BindBtn)
+                table.insert(Library.ThemeObjects.TextDark, BindStroke)
+
+                -- hover no keybind
+                BindBtn.MouseEnter:Connect(function()
+                    if not Binding then
+                        TS:Create(BindBtn, TweenInfo.new(0.2), {TextColor3 = SelectedTheme.Text}):Play()
+                    end
+                end)
+                BindBtn.MouseLeave:Connect(function()
+                    if not Binding then
+                        TS:Create(BindBtn, TweenInfo.new(0.2), {TextColor3 = SelectedTheme.TextDark}):Play()
+                    end
+                end)
+
+                -- ── lógica ─────────────────────────────────────
+                local function UpdateState(val)
+                    State = val
+                    Library.Flags[Flag] = val
+
+                    TS:Create(BoxStroke, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                        Color        = State and SelectedTheme.ElementAccent or SelectedTheme.TextDark,
+                        Transparency = State and 0 or 0.8
+                    }):Play()
+
+                    TS:Create(InnerSquare, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                        BackgroundColor3    = State and SelectedTheme.ElementAccent or SelectedTheme.TextDark,
+                        Size                = State and UDim2.fromScale(0.6, 0.6) or UDim2.fromScale(0, 0),
+                        BackgroundTransparency = State and 0 or 1
+                    }):Play()
+
+                    if Cfg.Callback then Cfg.Callback(State) end
+                end
+
+                local function UpdateKey(key)
+                    CurrentKey = key
+                    BindBtn.Text = KeyMap[key.Name] or key.Name
+                    BindBtn.TextColor3 = SelectedTheme.TextDark
+                    Library.Flags[KeyFlag] = key.Name
+                    Binding = false
+                end
+
+                -- clique no checkbox
+                local BoxBtn = Create("TextButton", {
+                    Parent              = Box,
+                    Size                = UDim2.fromScale(1, 1),
+                    BackgroundTransparency = 1,
+                    Text                = "",
+                    ZIndex              = 10
+                })
+                BoxBtn.MouseButton1Click:Connect(function()
+                    UpdateState(not State)
+                end)
+
+                -- clique no keybind → modo binding
+                BindBtn.MouseButton1Click:Connect(function()
+                    Binding = true
+                    BindBtn.Text = "..."
+                    BindBtn.TextColor3 = SelectedTheme.Accent
+                end)
+
+                -- input
+                local Conn
+                Conn = UIS.InputBegan:Connect(function(input, gpe)
+                    if not Frame.Parent then Conn:Disconnect() return end
+
+                    if Binding then
+                        if input.UserInputType == Enum.UserInputType.Keyboard
+                        and input.KeyCode ~= Enum.KeyCode.Unknown then
+                            UpdateKey(input.KeyCode)
+                        end
+                    elseif not gpe and not UIS:GetFocusedTextBox() then
+                        if input.KeyCode == CurrentKey then
+                            UpdateState(not State)
+                        end
+                    end
+                end)
+
+                -- defaults
+                if Cfg.Default ~= nil then
+                    UpdateState(Cfg.Default)
+                else
+                    Library.Flags[Flag] = false
+                end
+
+                Library.Items[Flag] = {
+                    Set = function(val)
+                        if val == nil or State == val then return end
+                        UpdateState(val)
+                    end,
+                    SetKey = function(keyName)
+                        if Enum.KeyCode[keyName] then
+                            UpdateKey(Enum.KeyCode[keyName])
+                        end
+                    end,
+                    Get = function() return State end,
+                    GetKey = function() return CurrentKey end
+                }
+            end
+
             return Elements
         end
 
